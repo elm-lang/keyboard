@@ -15,7 +15,7 @@ effect module Keyboard where { subscription = MySub } exposing
 
 import Dict
 import Dom.LowLevel as Dom
-import Json.Decode as Json exposing ((:=))
+import Json.Decode as Json
 import Process
 import Task exposing (Task)
 
@@ -35,7 +35,7 @@ type alias KeyCode =
 
 keyCode : Json.Decoder KeyCode
 keyCode =
-  "keyCode" := Json.int
+  Json.field "keyCode" Json.int
 
 
 
@@ -139,7 +139,8 @@ type alias Msg =
   }
 
 
-(&>) t1 t2 = t1 `Task.andThen` \_ -> t2
+(&>) task1 task2 =
+  Task.andThen (\_ -> task2) task1
 
 
 onEffects : Platform.Router msg Msg -> List (MySub msg) -> State msg -> Task Never (State msg)
@@ -149,21 +150,12 @@ onEffects router newSubs oldState =
       Process.kill pid &> task
 
     bothStep category {pid} taggers task =
-      task
-        `Task.andThen` \state ->
-
-      Task.succeed
-        (Dict.insert category (Watcher taggers pid) state)
+      Task.map (Dict.insert category (Watcher taggers pid)) task
 
     rightStep category taggers task =
       task
-        `Task.andThen` \state ->
-
-      Process.spawn (Dom.onDocument category keyCode (Platform.sendToSelf router << Msg category))
-        `Task.andThen` \pid ->
-
-      Task.succeed
-        (Dict.insert category (Watcher taggers pid) state)
+        |> Task.andThen (\state -> Process.spawn (Dom.onDocument category keyCode (Platform.sendToSelf router << Msg category))
+        |> Task.andThen (\pid -> Task.succeed (Dict.insert category (Watcher taggers pid) state)))
   in
     Dict.merge
       leftStep
@@ -186,7 +178,5 @@ onSelfMsg router {category,keyCode} state =
           Platform.sendToApp router (tagger keyCode)
       in
         Task.sequence (List.map send taggers)
-          `Task.andThen` \_ ->
-
-        Task.succeed state
+          |> Task.andThen (\_ -> Task.succeed state)
 
