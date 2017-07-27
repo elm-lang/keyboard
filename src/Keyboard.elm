@@ -33,9 +33,9 @@ type alias KeyCode =
   Int
 
 
-keyCode : Json.Decoder KeyCode
-keyCode =
-  Json.field "keyCode" Json.int
+which : Json.Decoder KeyCode
+which =
+  Json.field "which" Json.int
 
 
 
@@ -154,7 +154,7 @@ onEffects router newSubs oldState =
 
     rightStep category taggers task =
       task
-        |> Task.andThen (\state -> Process.spawn (Dom.onDocument category keyCode (Platform.sendToSelf router << Msg category))
+        |> Task.andThen (\state -> Process.spawn (Dom.onDocument category which (Platform.sendToSelf router << Msg category))
         |> Task.andThen (\pid -> Task.succeed (Dict.insert category (Watcher taggers pid) state)))
   in
     Dict.merge
