@@ -42,7 +42,7 @@ keyCode =
 -- MOUSE EVENTS
 
 
-{-| Subscribe to all key presses.
+{-| Subscribe to all presses of keys that normally produce a character value.
 -}
 presses : (KeyCode -> msg) -> Sub msg
 presses tagger =
